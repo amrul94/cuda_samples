@@ -3,7 +3,8 @@ project(cuda_samples CUDA)
 
 set(CMAKE_CUDA_STANDARD 20)
 
-add_executable(cuda_samples main.cu)
+include_directories(${CMAKE_SOURCE_DIR})
 
-set_target_properties(cuda_samples PROPERTIES
-        CUDA_SEPARABLE_COMPILATION ON)
+add_subdirectory(samples/cuda_by_example)
+
+
