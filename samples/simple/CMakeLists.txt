@@ -1,0 +1,2 @@
+add_executable(device_info device_info.cu)
+set_target_properties(device_info PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
