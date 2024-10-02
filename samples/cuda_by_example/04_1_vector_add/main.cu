@@ -40,7 +40,7 @@ __host__ size_t getVectorSize(int argc, char *argv[]) {
   }
 }
 
-__global__ void vectorAddKernel(const int *a, const int *b, int *c, size_t n) {
+__global__ void addKernel(const int *a, const int *b, int *c, size_t n) {
   unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
   while (tid < n) {
     c[tid] = a[tid] + b[tid];
@@ -48,7 +48,7 @@ __global__ void vectorAddKernel(const int *a, const int *b, int *c, size_t n) {
   }
 }
 
-__host__ void vectorAdd(const int *h_a, const int *h_b, int *h_c, size_t n) {
+__host__ void add(const int *h_a, const int *h_b, int *h_c, size_t n) {
   int *d_a, *d_b, *d_c;
   const size_t size = n * sizeof(int);
 
@@ -60,7 +60,7 @@ __host__ void vectorAdd(const int *h_a, const int *h_b, int *h_c, size_t n) {
   HANDLE_ERROR(cudaMemcpy(d_b, h_b, size, cudaMemcpyHostToDevice));
 
   const auto [grid_dim, block_dim] = utils::getGridAndBlockDims(n, 1);
-  vectorAddKernel<<<grid_dim, block_dim>>>(d_a, d_b, d_c, n);
+  addKernel<<<grid_dim, block_dim>>>(d_a, d_b, d_c, n);
 
   HANDLE_ERROR(cudaMemcpy(h_c, d_c, size, cudaMemcpyDeviceToHost));
 
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
     b[i] = 2 * i;
   }
 
-  vectorAdd(a, b, c, vec_size);
+  add(a, b, c, vec_size);
 
   bool success = true;
   for (int i = 0; i < vec_size; i++) {
