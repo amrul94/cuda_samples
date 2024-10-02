@@ -12,28 +12,12 @@
  * your use of this NVIDIA software.
  *
  */
+#include <thrust/complex.h>
 
 #include "common/error_handling.cuh"
 #include "samples/cuda_by_example/common/cpu_bitmap.h"
 
 constexpr int DIM = 1000;
-
-struct cuComplex {
-  float r;
-  float i;
-
-  __device__ cuComplex(float a, float b) : r(a), i(b) {}
-
-  __device__ float magnitude2() const { return r * r + i * i; }
-
-  __device__ cuComplex operator*(const cuComplex &a) const {
-    return {r * a.r - i * a.i, i * a.r + r * a.i};
-  }
-
-  __device__ cuComplex operator+(const cuComplex &a)const  {
-    return {r + a.r, i + a.i};
-  }
-};
 
 __device__ int julia(int x, int y) {
   constexpr float half_dim = static_cast<float>(DIM) / 2;
@@ -44,13 +28,13 @@ __device__ int julia(int x, int y) {
   float jx = scale * (half_dim - fx) / half_dim;
   float jy = scale * (half_dim - fy) / half_dim;
 
-  cuComplex c{-0.8, 0.156};
-  cuComplex a{jx, jy};
+  thrust::complex<float> c{-0.8, 0.156};
+  thrust::complex<float> a{jx, jy};
 
   int i = 0;
   for (i = 0; i < 200; ++i) {
     a = a * a + c;
-    if (a.magnitude2() > 1000) {
+    if (thrust::norm(a) > 1000) {
       return 0;
     }
   }
