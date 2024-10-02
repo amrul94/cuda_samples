@@ -13,6 +13,7 @@
  *
  */
 
+#include "common/error_handling.cuh"
 #include "samples/cuda_by_example/common/cpu_bitmap.h"
 
 constexpr int DIM = 1000;
@@ -21,20 +22,20 @@ struct cuComplex {
   float r;
   float i;
 
-  cuComplex(float a, float b) : r(a), i(b) {}
+  __device__ cuComplex(float a, float b) : r(a), i(b) {}
 
-  float magnitude2() { return r * r + i * i; }
+  __device__ float magnitude2() { return r * r + i * i; }
 
-  cuComplex operator*(const cuComplex &a) {
+  __device__ cuComplex operator*(const cuComplex &a) {
     return cuComplex(r * a.r - i * a.i, i * a.r + r * a.i);
   }
 
-  cuComplex operator+(const cuComplex &a) {
+  __device__ cuComplex operator+(const cuComplex &a) {
     return cuComplex(r + a.r, i + a.i);
   }
 };
 
-int julia(int x, int y) {
+__device__ int julia(int x, int y) {
   const float scale = 1.5;
   float jx = scale * (float)(DIM / 2 - x) / (DIM / 2);
   float jy = scale * (float)(DIM / 2 - y) / (DIM / 2);
@@ -52,25 +53,30 @@ int julia(int x, int y) {
   return 1;
 }
 
-void kernel(unsigned char *ptr) {
-  for (int y = 0; y < DIM; ++y) {
-    for (int x = 0; x < DIM; ++x) {
-      int offset = x + y * DIM;
+__global__ void kernel(unsigned char *ptr) {
+  int x = blockIdx.x;
+  int y = blockIdx.y;
+  int offset = x + y * gridDim.x;
 
-      int julia_value = julia(x, y);
-      ptr[offset * 4 + 0] = 255 * julia_value;
-      ptr[offset * 4 + 1] = 0;
-      ptr[offset * 4 + 2] = 0;
-      ptr[offset * 4 + 3] = 255;
-    }
-  }
+  int julia_value = julia(x, y);
+  ptr[offset * 4 + 0] = 255 * julia_value;
+  ptr[offset * 4 + 1] = 0;
+  ptr[offset * 4 + 2] = 0;
+  ptr[offset * 4 + 3] = 255;
 }
 
 int main() {
   CPUBitmap bitmap(DIM, DIM);
-  unsigned char *ptr = bitmap.get_ptr();
+  unsigned char *dev_bitmap;
 
-  kernel(ptr);
+  HANDLE_ERROR(cudaMalloc((void **)&dev_bitmap, bitmap.image_size()));
+
+  dim3 grid(DIM, DIM);
+
+  kernel<<<grid, 1>>>(dev_bitmap);
+
+  HANDLE_ERROR(cudaMemcpy(bitmap.get_ptr(), dev_bitmap, bitmap.image_size(),
+                          cudaMemcpyDeviceToHost));
 
   bitmap.display_and_exit();
 }
