@@ -59,9 +59,7 @@ __host__ void vectorAdd(const int *h_a, const int *h_b, int *h_c, size_t n) {
   HANDLE_ERROR(cudaMemcpy(d_a, h_a, size, cudaMemcpyHostToDevice));
   HANDLE_ERROR(cudaMemcpy(d_b, h_b, size, cudaMemcpyHostToDevice));
 
-  const size_t block_dim = utils::getMaxThreadsPerBlock();
-  const auto block_dim_f = static_cast<float>(block_dim);
-  const size_t grid_dim = std::ceil(static_cast<float>(n) / block_dim_f);
+  const auto [grid_dim, block_dim] = utils::getGridAndBlockDims(n, 1);
   vectorAddKernel<<<grid_dim, block_dim>>>(d_a, d_b, d_c, n);
 
   HANDLE_ERROR(cudaMemcpy(h_c, d_c, size, cudaMemcpyDeviceToHost));

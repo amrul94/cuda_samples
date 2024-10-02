@@ -6,4 +6,3 @@ target_link_libraries(${SAMPLES_SOURCE}_05_1_wave_effect
     OpenGL::OpenGL
     GLUT::GLUT
 )
-

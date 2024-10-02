@@ -45,8 +45,8 @@ __global__ void kernel(unsigned char *ptr, int ticks) {
 }
 
 __host__ void generateFrame(DataBlock *d, int ticks) {
-  const auto [blocks, threads] = utils::getOptimalGridAndBlockSize(2, DIM);
-  kernel<<<blocks, threads>>>(d->dev_bitmap, ticks);
+  static const auto [grid_dim, block_dim] = utils::getGridAndBlockDims(DIM, 2);
+  kernel<<<grid_dim, block_dim>>>(d->dev_bitmap, ticks);
   HANDLE_ERROR(cudaMemcpy(d->bitmap->get_ptr(), d->dev_bitmap,
                           d->bitmap->image_size(), cudaMemcpyDeviceToHost));
 }

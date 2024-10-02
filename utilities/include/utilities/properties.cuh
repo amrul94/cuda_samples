@@ -1,19 +1,22 @@
 #ifndef CUDA_SAMPLES_COMMON_PROPERTIES_CUH
 #define CUDA_SAMPLES_COMMON_PROPERTIES_CUH
 
-#include <utility>
+#include <cstddef>
 
 namespace utils {
 
 size_t getMaxThreadsPerBlock();
 
-dim3 getOptimalBlockSize(int num_dimensions);
+dim3 getBlockDim(size_t num_dimensions);
 
-std::pair<dim3, dim3> getOptimalGridAndBlockSize(int num_dimensions,
-                                                 unsigned int max_dim_size);
+unsigned int getGridDim(unsigned int data_dim, unsigned int block_dim);
 
-std::pair<dim3, dim3> getOptimalGridAndBlockSize(int num_dimensions,
-                                                 dim3 max_dim_size);
+dim3 getGridDim(dim3 data_dim, dim3 block_dim);
+
+std::pair<dim3, dim3> getGridAndBlockDims(unsigned int data_dim,
+                                          size_t num_dimensions);
+
+std::pair<dim3, dim3> getGridAndBlockDims(dim3 data_dim, size_t num_dimensions);
 
 } // namespace utils
 
