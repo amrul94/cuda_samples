@@ -12,10 +12,11 @@
  * your use of this NVIDIA software.
  *
  */
+
 #include <thrust/complex.h>
 
-#include "common/error_handling.cuh"
 #include "samples/cuda_by_example/common/cpu_bitmap.h"
+#include "utilities/error_handling.cuh"
 
 // TODO(amrulla): добавить параметры настраиваемые через командную строку.
 

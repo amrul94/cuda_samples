@@ -18,7 +18,7 @@
 #include <iostream>
 #include <vector>
 
-#include "common/error_handling.cuh"
+#include "utilities/error_handling.cuh"
 
 __host__ size_t getVectorSize(int argc, char *argv[]) {
   if (argc != 2) {

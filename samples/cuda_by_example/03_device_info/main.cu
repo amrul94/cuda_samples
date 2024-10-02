@@ -13,7 +13,9 @@
  *
  */
 
-#include "common/error_handling.cuh"
+#include <cstdio>
+
+#include "utilities/error_handling.cuh"
 
 constexpr const char *isSupported(int flag) {
   return flag ? "supported" : "unsupported";
