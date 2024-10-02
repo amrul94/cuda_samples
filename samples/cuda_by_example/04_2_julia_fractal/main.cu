@@ -17,6 +17,8 @@
 #include "common/error_handling.cuh"
 #include "samples/cuda_by_example/common/cpu_bitmap.h"
 
+// TODO(amrulla): добавить параметры настраиваемые через командную строку.
+
 constexpr int DIM = 1000;
 
 __device__ int julia(int x, int y) {
