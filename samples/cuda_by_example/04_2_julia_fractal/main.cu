@@ -24,24 +24,28 @@ struct cuComplex {
 
   __device__ cuComplex(float a, float b) : r(a), i(b) {}
 
-  __device__ float magnitude2() { return r * r + i * i; }
+  __device__ float magnitude2() const { return r * r + i * i; }
 
-  __device__ cuComplex operator*(const cuComplex &a) {
-    return cuComplex(r * a.r - i * a.i, i * a.r + r * a.i);
+  __device__ cuComplex operator*(const cuComplex &a) const {
+    return {r * a.r - i * a.i, i * a.r + r * a.i};
   }
 
-  __device__ cuComplex operator+(const cuComplex &a) {
-    return cuComplex(r + a.r, i + a.i);
+  __device__ cuComplex operator+(const cuComplex &a)const  {
+    return {r + a.r, i + a.i};
   }
 };
 
 __device__ int julia(int x, int y) {
-  const float scale = 1.5;
-  float jx = scale * (float)(DIM / 2 - x) / (DIM / 2);
-  float jy = scale * (float)(DIM / 2 - y) / (DIM / 2);
+  constexpr float half_dim = static_cast<float>(DIM) / 2;
+  const auto fx = static_cast<float>(x);
+  const auto fy = static_cast<float>(y);
 
-  cuComplex c(-0.8, 0.156);
-  cuComplex a(jx, jy);
+  const float scale = 1.5;
+  float jx = scale * (half_dim - fx) / half_dim;
+  float jy = scale * (half_dim - fy) / half_dim;
+
+  cuComplex c{-0.8, 0.156};
+  cuComplex a{jx, jy};
 
   int i = 0;
   for (i = 0; i < 200; ++i) {
@@ -54,9 +58,9 @@ __device__ int julia(int x, int y) {
 }
 
 __global__ void kernel(unsigned char *ptr) {
-  int x = blockIdx.x;
-  int y = blockIdx.y;
-  int offset = x + y * gridDim.x;
+  int x = static_cast<int>(blockIdx.x);
+  int y = static_cast<int>(blockIdx.y);
+  size_t offset = x + y * gridDim.x;
 
   int julia_value = julia(x, y);
   ptr[offset * 4 + 0] = 255 * julia_value;
@@ -66,7 +70,7 @@ __global__ void kernel(unsigned char *ptr) {
 }
 
 int main() {
-  CPUBitmap bitmap(DIM, DIM);
+  CPUBitmap bitmap{DIM, DIM};
   unsigned char *dev_bitmap;
 
   HANDLE_ERROR(cudaMalloc((void **)&dev_bitmap, bitmap.image_size()));
