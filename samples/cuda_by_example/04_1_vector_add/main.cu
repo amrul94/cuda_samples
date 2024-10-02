@@ -13,12 +13,11 @@
  *
  */
 
-#include <algorithm>
 #include <format>
 #include <iostream>
-#include <vector>
 
 #include "utilities/error_handling.cuh"
+#include "utilities/properties.cuh"
 
 __host__ size_t getVectorSize(int argc, char *argv[]) {
   if (argc != 2) {
@@ -41,27 +40,6 @@ __host__ size_t getVectorSize(int argc, char *argv[]) {
   }
 }
 
-__host__ size_t getMaxThreadsPerBlock() {
-  int num_devices;
-  HANDLE_ERROR(cudaGetDeviceCount(&num_devices));
-
-  if (num_devices == 0) {
-    std::cerr << "Cuda device not found!" << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-
-  cudaDeviceProp prop{};
-  std::vector<size_t> max_threads;
-  max_threads.reserve(num_devices);
-
-  for (int i = 0; i < num_devices; i++) {
-    HANDLE_ERROR(cudaGetDeviceProperties(&prop, i));
-    max_threads.push_back(prop.maxThreadsPerBlock);
-  }
-
-  return *std::ranges::min_element(max_threads);
-}
-
 __global__ void vectorAddKernel(const int *a, const int *b, int *c, size_t n) {
   unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
   while (tid < n) {
@@ -81,7 +59,7 @@ __host__ void vectorAdd(const int *h_a, const int *h_b, int *h_c, size_t n) {
   HANDLE_ERROR(cudaMemcpy(d_a, h_a, size, cudaMemcpyHostToDevice));
   HANDLE_ERROR(cudaMemcpy(d_b, h_b, size, cudaMemcpyHostToDevice));
 
-  const size_t block_dim = getMaxThreadsPerBlock();
+  const size_t block_dim = utils::getMaxThreadsPerBlock();
   const auto block_dim_f = static_cast<float>(block_dim);
   const size_t grid_dim = std::ceil(static_cast<float>(n) / block_dim_f);
   vectorAddKernel<<<grid_dim, block_dim>>>(d_a, d_b, d_c, n);

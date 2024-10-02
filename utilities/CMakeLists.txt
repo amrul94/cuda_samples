@@ -5,6 +5,7 @@ set(CMAKE_CUDA_STANDARD 20)
 
 set(SOURCE_FILES
     src/error_handling.cu
+    src/properties.cu
 )
 
 add_library(cuda_samples_utilities SHARED ${SOURCE_FILES})
