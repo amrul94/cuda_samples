@@ -12,6 +12,7 @@
 * your use of this NVIDIA software.
 *
 */
+
 #include "common/error_handling.cuh"
 
 constexpr const char *isSupported(int flag) {
