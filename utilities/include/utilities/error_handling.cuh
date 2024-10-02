@@ -1,8 +1,6 @@
 #ifndef CUDA_SAMPLES_COMMON_ERROR_HANDLING_CUH
 #define CUDA_SAMPLES_COMMON_ERROR_HANDLING_CUH
 
-#include <cstdio>
-
 namespace utils {
 
 void handleError(cudaError_t err, const char *file, int line);
