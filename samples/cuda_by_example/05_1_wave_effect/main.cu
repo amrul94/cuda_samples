@@ -17,6 +17,7 @@
 #include "utilities/error_handling.cuh"
 #include "utilities/properties.cuh"
 
+// TODO(amrulla): сделать параметром настраиваемым через командную строку.
 constexpr int DIM = 1024;
 
 struct DataBlock {

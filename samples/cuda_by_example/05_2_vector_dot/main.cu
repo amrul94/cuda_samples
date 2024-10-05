@@ -18,15 +18,14 @@
 #include "utilities/error_handling.cuh"
 #include "utilities/properties.cuh"
 
+// TODO(amrulla): сделать параметром настраиваемым через командную строку.
 constexpr unsigned int N = 33 * 1024;
-constexpr unsigned int threads_per_block = 256;
-constexpr unsigned int blocks_per_grid =
-    std::min(32u, (N + threads_per_block - 1) / threads_per_block);
 
 constexpr float sumSquares(float x) { return (x * (x + 1) * (2 * x + 1) / 6); }
 
 __global__ void dotKernel(const float *a, const float *b, float *c) {
-  __shared__ float cache[threads_per_block];
+  extern __shared__ float cache[];
+
   unsigned int thread_idx = threadIdx.x + blockIdx.x * blockDim.x;
   const unsigned int cache_idx = threadIdx.x;
 
@@ -39,13 +38,11 @@ __global__ void dotKernel(const float *a, const float *b, float *c) {
   cache[cache_idx] = temp;
   __syncthreads();
 
-  unsigned int i = blockDim.x / 2;
-  while (i != 0) {
+  for (unsigned int i = blockDim.x / 2; i != 0; i /= 2) {
     if (cache_idx < i) {
       cache[cache_idx] += cache[cache_idx + i];
     }
     __syncthreads();
-    i /= 2;
   }
 
   if (cache_idx == 0) {
@@ -53,10 +50,13 @@ __global__ void dotKernel(const float *a, const float *b, float *c) {
   }
 }
 
-float dot(const float *a, const float *b, float *partial_c) {
+__host__ float dot(const float *a, const float *b, float *partial_c,
+                   unsigned int block_dim, unsigned int grid_dim) {
   float *dev_a, *dev_b, *dev_partial_c;
+
   const size_t size = N * sizeof(float);
-  const size_t partial_size = blocks_per_grid * sizeof(float);
+  const size_t partial_size = grid_dim * sizeof(float);
+  const size_t cache_size = block_dim * sizeof(float);
 
   HANDLE_ERROR(cudaMalloc((void **)&dev_a, size));
   HANDLE_ERROR(cudaMalloc((void **)&dev_b, size));
@@ -65,11 +65,9 @@ float dot(const float *a, const float *b, float *partial_c) {
   HANDLE_ERROR(cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice));
   HANDLE_ERROR(cudaMemcpy(dev_b, b, size, cudaMemcpyHostToDevice));
 
-  dotKernel<<<blocks_per_grid, threads_per_block>>>(dev_a, dev_b,
-                                                    dev_partial_c);
+  dotKernel<<<grid_dim, block_dim, cache_size>>>(dev_a, dev_b, dev_partial_c);
 
-  HANDLE_ERROR(cudaMemcpy(partial_c, dev_partial_c,
-                          blocks_per_grid * sizeof(float),
+  HANDLE_ERROR(cudaMemcpy(partial_c, dev_partial_c, partial_size,
                           cudaMemcpyDeviceToHost));
 
   cudaFree(dev_a);
@@ -77,7 +75,7 @@ float dot(const float *a, const float *b, float *partial_c) {
   cudaFree(dev_partial_c);
 
   float c = 0;
-  for (int i = 0; i < blocks_per_grid; ++i) {
+  for (int i = 0; i < grid_dim; ++i) {
     c += partial_c[i];
   }
 
@@ -85,9 +83,12 @@ float dot(const float *a, const float *b, float *partial_c) {
 }
 
 int main() {
+  const unsigned int block_dim = utils::getBlockDim(1).x;
+  const unsigned int grid_dim = std::min(32u, utils::getGridDim(N, block_dim));
+
   auto *a = new float[N];
   auto *b = new float[N];
-  auto *partial_c = new float[blocks_per_grid];
+  auto *partial_c = new float[grid_dim];
 
   for (int i = 0; i < N; ++i) {
     const auto fi = static_cast<float>(i);
@@ -95,7 +96,7 @@ int main() {
     b[i] = fi * 2;
   }
 
-  const float c = dot(a, b, partial_c);
+  const float c = dot(a, b, partial_c, block_dim, grid_dim);
 
   std::printf("Does GPU value %.6g = %.6g?\n", c,
               2 * sumSquares((float)(N - 1)));
