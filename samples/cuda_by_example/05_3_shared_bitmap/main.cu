@@ -13,24 +13,29 @@
  *
  */
 
+#include <numbers>
+
 #include "samples/cuda_by_example/common/cpu_bitmap.h"
 #include "utilities/error_handling.cuh"
 
 // TODO(amrulla): сделать параметром настраиваемым через командную строку.
 constexpr unsigned int DIM = 1024;
-constexpr float PI = 3.1415926535897932f;
+
+// TODO(amrulla): сделать параметром настраиваемым через командную строку
+//  или получаемым автоматически.
+constexpr unsigned int NUM_THREADS = 16;
 
 __device__ float partialCalc(unsigned int v, float period) {
   const auto fv = static_cast<float>(v);
-  return sinf(fv * 2.0f * PI / period) + 1.0f;
+  return sinf(fv * 2.0f * std::numbers::pi_v<float> / period) + 1.0f;
 }
 
 __global__ void kernel(unsigned char *ptr) {
-  unsigned int x = threadIdx.x + blockIdx.x * blockDim.x;
-  unsigned int y = threadIdx.y + blockIdx.y * blockDim.y;
-  unsigned int offset = x + y * blockDim.x * gridDim.x;
+  const unsigned int x = threadIdx.x + blockIdx.x * blockDim.x;
+  const unsigned int y = threadIdx.y + blockIdx.y * blockDim.y;
+  const unsigned int offset = x + y * blockDim.x * gridDim.x;
 
-  __shared__ float shared[16][16];
+  __shared__ float shared[NUM_THREADS][NUM_THREADS];
 
   const float period = 128.0f;
 
@@ -40,7 +45,8 @@ __global__ void kernel(unsigned char *ptr) {
 
   __syncthreads();
 
-  const float color = shared[15 - threadIdx.x][15 - threadIdx.y];
+  constexpr size_t max_idx = NUM_THREADS - 1;
+  const float color = shared[max_idx - threadIdx.x][max_idx - threadIdx.y];
 
   ptr[offset * 4 + 0] = 0;
   ptr[offset * 4 + 1] = static_cast<unsigned char>(color);
@@ -54,8 +60,8 @@ int main() {
 
   HANDLE_ERROR(cudaMalloc((void **)&dev_bitmap, bitmap.image_size()));
 
-  dim3 grids{DIM / 16, DIM / 16};
-  dim3 threads{16, 16};
+  constexpr dim3 grids{DIM / NUM_THREADS, DIM / NUM_THREADS};
+  constexpr dim3 threads{NUM_THREADS, NUM_THREADS};
 
   kernel<<<grids, threads>>>(dev_bitmap);
 
